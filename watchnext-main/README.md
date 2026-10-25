@@ -1,65 +1,108 @@
 # WatchNext
 
-> Stop scrolling. Start watching.
+WatchNext is a MovieLens-powered movie discovery and recommendation platform. It combines a React/Vite frontend with a FastAPI backend that serves the movie catalogue, profile-specific recommendations, poster metadata, ratings, and analytics.
 
-WatchNext helps you decide what to watch, alone or with friends. Core movie search and lineup features use prepared statistics from the attached MovieLens `ml-32m` dataset. No account is required; the movie shelf is saved in the browser.
+## Features
 
-## Run it
-
-Requirements: Node.js 20+ and the dataset folder at `ml-32m`.
-
-```powershell
-npm install
-npm run data:prepare
-npm run dev
-```
-
-Open `http://localhost:3000`. The production workflow is:
-
-```powershell
-npm run build
-npm start
-```
-
-`npm run data:prepare` is the offline foundation step. It streams the CSVs and writes `data/generated/summary.json`, which is ignored by Git. The UI only reads this prepared file; it never scans the 32M ratings during a request.
-
-Set `WATCHNEXT_DATA_DIR` when using another local MovieLens layout:
-
-```powershell
-$env:WATCHNEXT_DATA_DIR="D:\path\to\ml-1m"
-npm run data:prepare
-```
-
-The `WATCHNEXT_DATASET` variable records the selected scale in the generated summary. The data preparation implementation currently expects the MovieLens CSV schema and is developed against the full `ml-32m` folder first.
-
-## What is built
-
-- **Check a movie (`/`, `/check`)**: local shelf, live movie search, personalized estimate, comparison with MovieLens viewer ratings, and watch-later/seen actions.
-- **Tonight (`/tonight`)**: a five-movie lineup ranked from shelf genres and observed ratings, with genre, era and quick-watch filters plus feedback.
-- **Movie Night (`/movie-night`)**: create an invite URL, enter names and share by WhatsApp. Room state currently lives on the device that created or joined it.
-- **How it works (`/how-it-works`)**: plain-language flow and source-dataset numbers; collapsed examiner section links to preserved Booth pages.
-- **Movie APIs**: `/api/movies`, `/api/popular`, and `/api/lineup` read `data/generated/catalogue.json`. Heavy CSV aggregation is offline.
-
-### Phase 0–4 implementation and assumptions
-
-The old Booth navigation is removed from the consumer experience; its pages remain reachable only from the examiner section of How it works. `npm run data:prepare` now produces a compact served catalogue of movies with at least 25 ratings (21,226 titles for the current full dataset). Search matches titles directly. Personal estimates combine a user’s loved shelf genres with MovieLens averages; this is a transparent lightweight heuristic, not trained factorization. Posters are locally generated typographic cards, not TMDB artwork. The app does not claim India streaming availability and says that details are not available. Movie Night room membership is shared across browsers through a 24-hour JSON file on the running Node server. A hosted multi-instance deployment still needs a shared database.
-
-To rebuild generated artifacts after changing datasets, run `npm run data:prepare`. The full ratings scan takes a short while and is never run in a web request. Generated catalogue/summary files stay ignored by Git.
-
-The “Under 2 hours” filter is shown as unavailable because the current MovieLens source has no runtime values. Remaining work for a full brief implementation: real model factors and offline evaluation; TMDB posters, runtime, trailer and India providers; database-backed Movie Night rooms for hosted multi-instance deployment, seat map, group scoring and voting; usability sessions; and deployment/demo evidence. The old Booth still contains placeholder/proxy metrics; examiner-facing copy should be read with those labels in mind.
-
-The current lab pages are vertical-slice surfaces over `summary.json`. They explicitly label the recommender, stream, mining, churn, graph and benchmark values that are foundation/proxy artifacts; they are not presented as completed Spark or MapReduce runs. The next implementation step is replacing those artifacts with persisted outputs from the Spark/HDFS/MongoDB jobs while keeping the same serving contracts.
-
-## Dataset and assumptions
-
-The attached data is MovieLens `ml-32m`: 32,000,204 ratings, 2,000,072 tag applications, 87,585 movies and 200,948 users in the source release. The generated summary computes counts directly from the CSV files rather than copying these figures from documentation. Genre counts are attributed once per genre on each rating, so a multi-genre movie contributes to each of its listed genres. The personalized estimates use a lightweight genre and popularity heuristic, not a trained recommender.
-
-No dataset, API key or model file is committed. TMDB enrichment, Spark/HDFS, MongoDB, FastAPI, trained recommender evaluation and persistent shared rooms remain future work. Legacy Booth lab pages still contain sample/proxy values generated by the earlier foundation build; do not cite their model or benchmark figures as measured results.
+- Browse and search the MovieLens catalogue in **Home** and **Explore**.
+- Filter Explore results by genres that have available catalogue data.
+- View ALS recommendations in **For You** for four demo profiles:
+  - Nikhil — MovieLens user `18`
+  - Shravanya — MovieLens user `28`
+  - Arnav — MovieLens user `40`
+  - Karuna — MovieLens user `47`
+- Enter any numeric MovieLens user ID on the For You page.
+- View movie details, similar movies, community ratings, and profile-specific ratings.
+- Resolve verified TMDB posters when available, with a stable cinema-themed fallback when no poster can be verified.
+- Review recommendation, rating, genre, activity, interest-drop, and churn-risk analytics.
 
 ## Project structure
 
-- `app/` — Next.js routes and shared UI
-- `lib/` — server-side summary reader and formatting helpers
-- `scripts/build-summary.mjs` — offline CSV aggregation
-- `ml-32m/` — local attached dataset (not tracked)
-- `data/generated/` — generated artifacts (not tracked)
+```text
+watchnext-main/
+├── backend/
+│   └── main.py                 # FastAPI application
+├── frontend/
+│   ├── src/
+│   │   ├── components/         # Shared navigation, cards, grids, and UI
+│   │   ├── pages/              # Home, Explore, For You, details, analytics
+│   │   └── services/api.js     # Frontend API and poster helpers
+│   └── package.json
+├── pipeline/
+│   ├── output/                 # Local generated data; ignored by Git
+│   └── ...                     # MovieLens and analytics pipeline scripts
+├── .env.example
+└── .gitignore
+```
+
+## Requirements
+
+- Node.js 20 or newer
+- Python 3.10 or newer
+- The local MovieLens/pipeline output files required by the backend
+- A TMDB API key for poster enrichment (optional; fallback artwork is used when it is unavailable)
+
+## Start the backend
+
+From the repository's `watchnext-main` directory, open a PowerShell terminal:
+
+```powershell
+Set-Location .\backend
+$env:TMDB_API_KEY="your-tmdb-api-key"
+& "C:\path\to\python.exe" -m uvicorn main:app --host 127.0.0.1 --port 8000
+```
+
+The API is available at `http://127.0.0.1:8000`. Interactive API documentation is available at `http://127.0.0.1:8000/docs`.
+
+The backend reads the key from `TMDB_API_KEY`; do not hardcode API keys or commit `.env` files.
+
+## Start the frontend
+
+In a second PowerShell terminal:
+
+```powershell
+Set-Location .\frontend
+npm install
+npm run dev -- --host 127.0.0.1
+```
+
+Open the URL printed by Vite, normally `http://127.0.0.1:5173`.
+
+## Build and lint
+
+```powershell
+Set-Location .\frontend
+npm run lint
+npm run build
+```
+
+## Important API routes
+
+The frontend uses the FastAPI service for live data, including:
+
+- `GET /api/movies` — catalogue movies
+- `GET /api/genres` — genres with available movies
+- `GET /api/recommendations/{user_id}` — profile-specific recommendations
+- `GET /api/movies/{movie_id}` — movie details
+- `GET /api/movies/{movie_id}/similar` — similar movies
+- `POST /api/ratings` — submit a profile rating
+- Analytics routes for catalogue, rating, activity, interest-drop, and churn data
+
+The frontend keeps MovieLens IDs, titles, years, genres, ranking, predicted ratings, and community ratings from API responses. Poster resolution is shared across Explore, For You, and movie details so the same movie uses the same verified image wherever it appears.
+
+## Runtime data and secrets
+
+Generated pipeline data is intentionally local and is excluded from Git, including:
+
+- `pipeline/output/*.json`
+- `pipeline/output/*.db`
+- MovieLens datasets and generated summaries
+- Python virtual environments
+- `node_modules/` and frontend build output
+- `.env` and other local environment files
+
+Copy `.env.example` only when you need a local configuration template. Never commit TMDB credentials or generated database files.
+
+## Notes
+
+The application preserves the existing MovieLens/FastAPI API contracts and uses the local pipeline outputs available in the development environment. Hadoop and Spark scripts remain under `pipeline/`; starting the web application does not automatically run the batch pipeline.
