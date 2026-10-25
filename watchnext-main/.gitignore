@@ -1,0 +1,31 @@
+# Node dependencies & builds
+node_modules/
+dist/
+
+# Next.js
+.next/
+.next-watchnext/
+
+# Python virtualenvs & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Datasets (MovieLens 32M exceeds GitHub 100MB limit)
+ml-32m/
+*.csv
+
+# Runtime generated data
+data/generated/
+data/rooms/
+evidence/
+pipeline/hbase/hbase_local_dump.json
+pipeline/output/*.json
+pipeline/output/*.db
+
+# Environment variables
+.env*
+!.env.example

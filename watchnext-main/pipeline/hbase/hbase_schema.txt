@@ -1,0 +1,44 @@
+# ==============================================================================
+# WatchNext Big Data Pipeline — HBase NoSQL Table DDL
+# Column-oriented distributed storage for low-latency profile & recommendation retrieval
+# Execution in Cloudera/HBase Shell: hbase shell < hbase_schema.txt
+# ==============================================================================
+
+# 1. Disable and drop previous versions if re-initializing
+disable 'viewer_profiles'
+drop 'viewer_profiles'
+
+disable 'movie_recs'
+drop 'movie_recs'
+
+disable 'streaming_metrics'
+drop 'streaming_metrics'
+
+# 2. Table: viewer_profiles
+# Row Key: user_{userId} (e.g., user_1042)
+# Column Family 1: 'info' -> demographic, created_at, tier
+# Column Family 2: 'taste' -> genre affinities, ALS user latent factor vector
+# Column Family 3: 'history' -> last_watched_id, watch_count, avg_rating
+create 'viewer_profiles', 
+  {NAME => 'info', VERSIONS => 1, COMPRESSION => 'SNAPPY'},
+  {NAME => 'taste', VERSIONS => 3, COMPRESSION => 'SNAPPY'},
+  {NAME => 'history', VERSIONS => 1}
+
+# 3. Table: movie_recs
+# Row Key: user_{userId}
+# Column Family 1: 'recs' -> top-10 recommended movie IDs with confidence scores
+# Column Family 2: 'context' -> algorithm_used (ALS/Hybrid), timestamp
+create 'movie_recs',
+  {NAME => 'recs', VERSIONS => 1},
+  {NAME => 'context', VERSIONS => 1}
+
+# 4. Table: streaming_metrics
+# Row Key: movie_{movieId}
+# Column Family: 'live' -> concurrent_views, completion_rate, skip_rate
+create 'streaming_metrics',
+  {NAME => 'live', VERSIONS => 5, TTL => 86400}
+
+# 5. Verify Tables
+list
+describe 'viewer_profiles'
+describe 'movie_recs'
